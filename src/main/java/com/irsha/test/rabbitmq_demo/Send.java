@@ -1,28 +1,50 @@
 package com.irsha.test.rabbitmq_demo;
 
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.MessageProperties;
+import com.rabbitmq.client.*;
 
 public class Send {
-    private final static String QUEUE_NAME = "durable";
+    private final static String EXC_NAME = "exchange";
 
-    public void sendRabbitMQ() throws Exception{
+    public void sendRabbitMQ(String[] txt) throws Exception{
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
 
-        channel.queueDeclare(QUEUE_NAME, true, false, false, null);
-        for(int i =0;i<1000;i++) {
-            String message = "Hello World! "+i;
-            channel.basicPublish("", QUEUE_NAME, null, message.getBytes("UTF-8"));
-            System.out.println(" [x] Sent '" + message + "'");
-        }
+        channel.exchangeDeclare(EXC_NAME, BuiltinExchangeType.DIRECT);
+
+        String severity = getSeverity(txt);
+        String message = getMessage(txt);
+
+        channel.basicPublish(EXC_NAME,severity, null, message.getBytes("UTF-8"));
+        System.out.println(" [x] Sent '" + message + "'");
         channel.close();
         connection.close();
 
+    }
+
+    private static String getSeverity(String[] txt) {
+        if(txt.length<1){
+            return "info";
+        }
+        return txt[0];
+    }
+
+    private static String getMessage(String[] strings){
+        if (strings.length < 2)
+            return "Hello World!";
+        return joinStrings(strings, " ", 1);
+    }
+
+    private static String joinStrings(String[] strings, String delimiter, int startIndex) {
+        int length = strings.length;
+        if (length == 0) return "";
+        if (length < startIndex) return "";
+        StringBuilder words = new StringBuilder(strings[startIndex]);
+        for (int i = startIndex + 1; i < length; i++) {
+            words.append(delimiter).append(strings[i]);
+        }
+        return words.toString();
     }
 
 }
